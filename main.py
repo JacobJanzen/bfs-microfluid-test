@@ -8,9 +8,11 @@ output for a mixing graph
 from typing import Tuple
 from typing import List
 import pandas
+import sys
 
-MANTISSA_SIZE = 31
-ONE = 1 << MANTISSA_SIZE
+MANTISSA_SIZE = 0
+ONE = 0
+ZERO = 0
 
 
 def fix_value(x: int) -> int:
@@ -52,6 +54,7 @@ def to_fraction(x: int) -> "Tuple[int, int]":
     while x & (1 << index) == 0 and index <= MANTISSA_SIZE:
         index += 1
 
+    # compute the fraction and return
     denominator = 1 << (MANTISSA_SIZE - index)
     numerator = x >> index
     return (numerator, denominator)
@@ -86,22 +89,68 @@ def main():  # pylint: disable=too-many-locals
 
     compute every possible output up to a given depth
     """
-    init = tuple([0, 0, 0, ONE])
+    if len(sys.argv) < 4:
+        print("Need number of zeros, ones, and depth")
+        exit(1)
+
+    num_zeros = 0
+    num_ones = 0
+    depth = 0
+
+    try:
+        num_zeros = int(sys.argv[1])
+    except TypeError:
+        print("Failed to parse number of zeros")
+        exit(1)
+
+    try:
+        num_ones = int(sys.argv[2])
+    except TypeError:
+        print("Failed to parse number of ones")
+        exit(1)
+
+    try:
+        depth = int(sys.argv[3])
+    except TypeError:
+        print("Failed to parse depth")
+        exit(1)
+
+    global MANTISSA_SIZE
+    global ONE
+    global ZERO
+
+    MANTISSA_SIZE = depth
+    ONE = 1 << MANTISSA_SIZE
+    ZERO = 0
+
+    tmp = []
+    for i in range(num_zeros):
+        tmp.append(ZERO)
+    for i in range(num_ones):
+        tmp.append(ONE)
+
+    init = tuple(tmp)
     result_set = {init: (init, 1)}
 
     curr = {init: True}
     nxt = {}
 
-    for _ in range(20):
+    # iterate to the chosen depth
+    for _ in range(depth):
+
+        # iterate through each of the current outputs
         for c in curr:
             i = len(c) - 1
             j = i - 1
 
-            while i >= 0:  # go until i is out of range
-                if j < 0:  # update the i pointer on overflow of j
+            # go until i is out of range
+            while i >= 0:
+                # update the i and j pointers on overflow of j
+                if j < 0:
                     i -= 1
                     j = i - 1
 
+                # compute the next possible rows based on the current possible row
                 res = compute_next(list(c), i, j)
                 res.sort()
                 c_next = tuple(res)
@@ -125,11 +174,7 @@ def main():  # pylint: disable=too-many-locals
     maximum_denominator_greater_than_solution = {}
     for result in result_set.keys():
         data_line = []
-        (prevs, md) = result_set[result]
-        for val in list(prevs):
-            (n, d) = to_fraction(val)
-            data_line.append(f"{n}/{d}")
-        data_line.append("-->")
+        (_, md) = result_set[result]
         for val in list(result):
             (n, d) = to_fraction(val)
             data_line.append(f"{n}/{d}")
