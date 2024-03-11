@@ -7,8 +7,8 @@ output for a mixing graph
 
 from typing import Tuple
 from typing import List
-import pandas
 import sys
+import pandas
 
 MANTISSA_SIZE = 0
 ONE = 0
@@ -84,6 +84,10 @@ def max_denominator(inp: List[int]) -> int:
     return maxm
 
 
+def clear_line():
+    print("\r\033[K", end="")
+
+
 def main():  # pylint: disable=too-many-locals
     """main
 
@@ -91,7 +95,7 @@ def main():  # pylint: disable=too-many-locals
     """
     if len(sys.argv) < 4:
         print("Need number of zeros, ones, and depth")
-        exit(1)
+        sys.exit(1)
 
     num_zeros = 0
     num_ones = 0
@@ -101,19 +105,19 @@ def main():  # pylint: disable=too-many-locals
         num_zeros = int(sys.argv[1])
     except TypeError:
         print("Failed to parse number of zeros")
-        exit(1)
+        sys.exit(1)
 
     try:
         num_ones = int(sys.argv[2])
     except TypeError:
         print("Failed to parse number of ones")
-        exit(1)
+        sys.exit(1)
 
     try:
         depth = int(sys.argv[3])
     except TypeError:
         print("Failed to parse depth")
-        exit(1)
+        sys.exit(1)
 
     global MANTISSA_SIZE
     global ONE
@@ -136,10 +140,14 @@ def main():  # pylint: disable=too-many-locals
     nxt = {}
 
     # iterate to the chosen depth
-    for _ in range(depth):
+    for curr_depth in range(depth):
+        ij = 0
+        maxij = len(curr)
 
         # iterate through each of the current outputs
         for c in curr:
+            print(f"progress: depth {curr_depth} --> {ij/maxij*100}%\r", end="")
+            ij += 1
             i = len(c) - 1
             j = i - 1
 
@@ -162,9 +170,10 @@ def main():  # pylint: disable=too-many-locals
                     (_, tmp) = result_set[c_next]
                     if md < tmp:
                         result_set[c_next] = (c, md)
-                        next |= {c_next: True}
+                        nxt |= {c_next: True}
 
                 j -= 1
+            clear_line()
 
         curr = nxt
         nxt = {}
@@ -183,11 +192,18 @@ def main():  # pylint: disable=too-many-locals
             maximum_denominator_greater_than_solution[result] = True
 
     df = pandas.DataFrame(data)
-    print(df.to_string(header=False, index=False))
+    df.to_csv(path_or_buf="out.csv", header=False, index=False)
 
-    print("Exceptional:")
-    print(maximum_denominator_greater_than_solution)
+    print(
+        "Results with a maximum denominator in the path greater than any in the output:"
+    )
+    for res in maximum_denominator_greater_than_solution:
+        print(res)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        clear_line()
+        print("Exiting...")
