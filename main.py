@@ -52,7 +52,7 @@ def to_fraction(x: int) -> "Tuple[int, int]":
     while x & (1 << index) == 0 and index <= MANTISSA_SIZE:
         index += 1
 
-    denominator = 2 ** (MANTISSA_SIZE - index)
+    denominator = 1 << (MANTISSA_SIZE - index)
     numerator = x >> index
     return (numerator, denominator)
 
@@ -95,16 +95,12 @@ def main():  # pylint: disable=too-many-locals
     for _ in range(20):
         for c in curr:
             i = len(c) - 1
-            j = len(c) - 1
+            j = i - 1
 
             while i >= 0:  # go until i is out of range
-                if i == j:  # don't mix a value with itself
-                    j -= 1
-                    continue
-
                 if j < 0:  # update the i pointer on overflow of j
                     i -= 1
-                    j = len(c) - 1
+                    j = i - 1
 
                 res = compute_next(list(c), i, j)
                 res.sort()
@@ -117,6 +113,7 @@ def main():  # pylint: disable=too-many-locals
                     (_, tmp) = result_set[c_next]
                     if md < tmp:
                         result_set[c_next] = (c, md)
+                        next |= {c_next: True}
 
                 j -= 1
 
